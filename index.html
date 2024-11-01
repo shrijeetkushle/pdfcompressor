@@ -24,6 +24,13 @@
       width: 80%;
       max-width: 500px;
       margin-top: 2rem;
+      position: relative;
+    }
+    .drop-area {
+      border: 2px dashed #fff;
+      padding: 2rem;
+      border-radius: 8px;
+      cursor: pointer;
     }
     .upload-button {
       background-color: #fff;
@@ -70,15 +77,43 @@
       color: #555;
       font-size: 0.9rem;
     }
+
+    /* Contact Us Section Styling */
+    .contact-section {
+      background-color: #fdecea;
+      padding: 2rem;
+      border-radius: 8px;
+      width: 80%;
+      max-width: 500px;
+      text-align: left;
+      margin-top: 2rem;
+      color: #333;
+    }
+    .contact-section h2 {
+      text-align: center;
+      font-weight: bold;
+      color: #333;
+    }
+    .contact-section p {
+      font-size: 1rem;
+      color: #333;
+      margin: 0.5rem 0;
+    }
+    .contact-section p strong {
+      color: #333;
+      margin-right: 0.5rem;
+    }
   </style>
 </head>
 <body>
 
   <h1>Compress Large PDF Files</h1>
-  <div class="upload-box">
-    <input type="file" id="fileInput" accept="application/pdf" style="display: none;">
-    <button class="upload-button" onclick="document.getElementById('fileInput').click()">Choose PDF to Compress</button>
-    <p>or drop files here</p>
+  <div class="upload-box" id="uploadBox">
+    <div class="drop-area" id="dropArea" onclick="document.getElementById('fileInput').click()">
+      <input type="file" id="fileInput" accept="application/pdf" style="display: none;">
+      <p>Drag and drop your PDF file here, or</p>
+      <button class="upload-button">Choose PDF to Compress</button>
+    </div>
   </div>
 
   <div class="result-box" id="resultBox">
@@ -88,10 +123,26 @@
     <button class="download-button" id="downloadButton" onclick="downloadPdf()">Download</button>
   </div>
 
+  <!-- Contact Us Section -->
+  <div class="contact-section" id="contactUs">
+    <h2>Contact Us</h2>
+    <h3>1.Developer</h3>
+    <ul>
+        <li><strong>Email:</strong> 23951a12j7@gmail.com</li>
+        <li><strong>Phone:</strong> (+91)9704118032</p></li>
+    </ul>
+    <h3>2.Developer</h3>
+    <ul>
+        <li><strong>Email:</strong> 23951a12f5@gmail.com</li>
+        <li><strong>Phone:</strong> (+91)9014578188</p></li>
+    </ul>
+  </div>
+
   <script>
     let compressedPdfBytes = null;
 
     const fileInput = document.getElementById("fileInput");
+    const dropArea = document.getElementById("dropArea");
     const resultBox = document.getElementById("resultBox");
     const fileNameDisplay = document.getElementById("fileName");
     const originalSizeDisplay = document.getElementById("originalSize");
@@ -99,10 +150,28 @@
     const reductionPercentDisplay = document.getElementById("reductionPercent");
     const downloadButton = document.getElementById("downloadButton");
 
-    fileInput.addEventListener("change", async (event) => {
+    fileInput.addEventListener("change", handleFileSelect);
+    dropArea.addEventListener("dragover", (event) => {
+      event.preventDefault();
+      dropArea.classList.add('hover');
+    });
+    dropArea.addEventListener("dragleave", () => {
+      dropArea.classList.remove('hover');
+    });
+    dropArea.addEventListener("drop", (event) => {
+      event.preventDefault();
+      dropArea.classList.remove('hover');
+      const files = event.dataTransfer.files;
+      if (files.length) {
+        fileInput.files = files; // Simulate file input change event
+        handleFileSelect({ target: fileInput });
+      }
+    });
+
+    async function handleFileSelect(event) {
       const file = event.target.files[0];
       if (!file) return;
-      
+
       // Original file size
       const originalSize = file.size;
       originalSizeDisplay.textContent = formatBytes(originalSize);
@@ -118,7 +187,7 @@
 
       // Show the result box
       resultBox.style.display = "block";
-    });
+    }
 
     async function compressLargePdf(file) {
       const pdfDoc = await PDFLib.PDFDocument.load(await file.arrayBuffer());
