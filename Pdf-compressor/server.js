@@ -1,61 +1,83 @@
-const express = require('express');
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
+const express = require("express");
+
+const multer = require("multer");
+
+const path = require("path");
+
+const { exec } = require("child_process");
+
+const fs = require("fs");
 
 const app = express();
+
+const upload = multer({ dest: "uploads/" });
+
+
+
+app.use(express.static("public"));
+
+app.post("/upload", upload.single("pdfFile"), (req, res) => {
+
+  const inputPath = req.file.path;
+
+  const outputPath = `uploads/compressed_${req.file.originalname}`;
+
+
+
+  // Ghostscript command for compression
+
+  const command = `gswin64c -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/ebook -dNOPAUSE -dBATCH -sOutputFile="${outputPath}" "${inputPath}"`;
+
+  
+
+  exec(command, (error, stdout, stderr) => {
+
+    if (error) {
+
+      console.error(`Error: ${error.message}`);
+
+      console.error(`stderr: ${stderr}`);
+
+      res.status(500).send("Compression failed.");
+
+      return;
+
+    }
+
+    
+
+    console.log(`stdout: ${stdout}`);
+
+    // Send the compressed file URL as a response
+
+    res.json({ fileUrl: `/${outputPath}` });
+
+
+
+    setTimeout(() => {
+
+      fs.unlink(inputPath, () => {});
+
+      fs.unlink(outputPath, () => {});
+
+    }, 60000);
+
+  });
+
+});
+
+
+
+app.use(express.static(path.join(__dirname, "uploads")));
+
+
+
 const PORT = 3000;
 
-// Set up storage for multer
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, 'uploads/');
-    },
-    filename: (req, file, cb) => {
-        const uniqueName = Date.now() + path.extname(file.originalname);
-        cb(null, uniqueName);
-    }
-});
-
-const upload = multer({ storage: storage });
-
-// Route to handle file upload
-app.post('/upload', upload.single('file'), (req, res) => {
-    if (!req.file) {
-        return res.status(400).send('No file uploaded.');
-    }
-
-    // Access the file path
-    const filePath = req.file.path;
-    console.log('File path:', filePath);
-
-    // Further processing for the PDF compression can go here
-
-    res.send(`File uploaded successfully. Access it at /?file=${req.file.filename}`);
-});
-
-// Route to serve uploaded files
-app.get('/', (req, res) => {
-    const fileName = req.query.file;
-
-    if (!fileName) {
-        return res.status(400).send('File parameter is missing.');
-    }
-
-    const filePath = path.join(__dirname, 'uploads', fileName);
-
-    // Check if the file exists
-    fs.access(filePath, fs.constants.F_OK, (err) => {
-        if (err) {
-            console.error('File not found:', filePath);
-            return res.status(404).send('File not found.');
-        }
-
-        // Send the file
-        res.sendFile(filePath);
-    });
-});
-
 app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
+
+  console.log(`Server is running on port http://localhost:${PORT}`);
+
 });
+
+
